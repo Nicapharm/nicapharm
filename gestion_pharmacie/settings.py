@@ -51,7 +51,7 @@ MIDDLEWARE = [
     'whitenoise.middleware.WhiteNoiseMiddleware',
 ]
 CORS_ALLOWED_ORIGINS = [
-    "https://nicapharmtechnologie.onrender.com",
+    "https://nicapharmtech.onrender.com",
     "http://localhost:3000",
     "http://127.0.0.1:3000",        # ← parfois nécessaire aussi
     "http://localhost:5000",        # ← si tu utilises Electron
@@ -118,19 +118,19 @@ from decouple import config
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'nicapharm',
-        'USER': 'nicapharm_user',
-        'PASSWORD': 'WTIVUA2bEab4gowGJyNZ0WRKY5g6tXq8',
-        'HOST': 'dpg-d1t3j93e5dus73e4am20-a',
+        'NAME': 'nicapharm21',
+        'USER': 'nicapharm21_user',
+        'PASSWORD': '9omhRKIcWnzOa6iuUy2hCQqvrYQO0q7T',
+        'HOST': 'dpg-d2fucl7diees73cs10bg-a',
         'PORT': '5432',
     },
     'remote': 
     {
     'ENGINE': 'django.db.backends.postgresql',
-    'NAME': 'nicapharm',
-    'USER': 'nicapharm_user',
-    'PASSWORD': 'WTIVUA2bEab4gowGJyNZ0WRKY5g6tXq8',
-    'HOST': 'dpg-d1t3j93e5dus73e4am20-a.oregon-postgres.render.com',
+    'NAME': 'nicapharm21',
+    'USER': 'nicapharm21_user',
+    'PASSWORD': '9omhRKIcWnzOa6iuUy2hCQqvrYQO0q7T',
+    'HOST': 'dpg-d2fucl7diees73cs10bg-a.oregon-postgres.render.com',
     'PORT': '5432',
 }
 }
