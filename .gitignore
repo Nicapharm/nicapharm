@@ -1,0 +1,14 @@
+.venv/groupe-petit-prince/
+# Contenu du .gitignovvvssssssvvvvre pour Django :
+venv/
+__pycache__/
+*.sqlite3
+*.pyc
+.env
+staticfiles/
+media/
+node_modules
+.next/
+
+
+

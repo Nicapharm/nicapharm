@@ -1,0 +1,450 @@
+'use client';
+import { useState, useEffect } from 'react';
+import axios from 'axios';
+import HeaderDirecteur from '@/components/HeaderDirecteur';
+import SidebarDirecteur from '@/components/SidebarDirecteur';
+import generateAndDownloadPDF from '@/components/RecuVentePDF';
+
+interface Client {
+  id: number;
+  nom_complet: string;
+  telephone: string;
+}
+
+interface ProduitPharmacie {
+  id: number;
+  nom_medicament: string;
+  prix_vente: number;
+  quantite: number;
+  code_barre: string;
+  localisation: string;
+}
+
+interface LigneVente {
+  produit: ProduitPharmacie | null;
+  quantite: number;
+  prix_unitaire: number;
+  total: number;
+}
+interface User {
+  id: number;
+  username: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+   profile_picture: string | null;
+  role: string;
+  pharmacie: number;
+}
+interface Pharmacie {
+  id: number;
+  nom_pharm: string;
+  adresse_pharm: string;
+  telephone: string | null;
+}
+interface PharmacieData {
+  id: number;
+  nom_pharm: string;
+  ville_pharm: string;
+  commune_pharm: string;
+  adresse_pharm: string;
+  rccm: string;
+  idnat: string;
+  ni: string;
+  telephone: string;
+  logo_pharm: string | null;
+}
+
+export default function VentePage() {
+  const [produits, setProduits] = useState<ProduitPharmacie[]>([]);
+  const [pharmacieNom, setPharmacieNom] = useState<string | null>(null);
+  const [clients, setClients] = useState<Client[]>([]);
+  const [lignes, setLignes] = useState<LigneVente[]>([{ produit: null, quantite: 1, prix_unitaire: 0, total: 0 }]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [clientSearchTerm, setClientSearchTerm] = useState('');
+  const [accessToken, setAccessToken] = useState<string | null>(null);
+  const [pharmacieId, setPharmacieId] = useState<number | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [selectedClient, setSelectedClient] = useState<Client | null>(null);
+  const [pharmacieData, setPharmacieData] = useState<PharmacieData | null>(null);
+  const [user, setUser] = useState<User | null>(null);
+  const [pharmacie, setPharmacie] = useState<Pharmacie | null>(null);
+
+  useEffect(() => {
+    const token = localStorage.getItem('accessToken');
+    setAccessToken(token);
+  }, []);
+
+  useEffect(() => {
+    if (accessToken) {
+      axios
+        .get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/user/me/`, {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        })
+        .then((res) => {
+          const pharmacie = res.data.pharmacie;
+          if (pharmacie) {
+            setPharmacieData(pharmacie);
+            setPharmacieId(pharmacie.id);
+            setPharmacieNom(pharmacie.nom_pharm);
+          } else {
+            setError("Aucune pharmacie trouvée pour cet utilisateur");
+          }
+        })
+        .catch(() => setError("Erreur lors du chargement des données de la pharmacie"))
+        .finally(() => setLoading(false));
+    }
+  }, [accessToken]);
+
+  const loadProduits = (pharmacieId: number) => {
+    axios
+      .get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/produits-pharmacie/?pharmacie=${pharmacieId}`, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      })
+      .then((res) => setProduits(res.data))
+      .catch(() => setError("Erreur lors du chargement des produits"));
+  };
+
+  const loadClients = (pharmacieId: number) => {
+    axios
+      .get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/clients/?pharmacie=${pharmacieId}`, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      })
+      .then((res) => setClients(res.data))
+      .catch(console.error);
+  };
+
+  useEffect(() => {
+    if (accessToken && pharmacieId) {
+      loadProduits(pharmacieId);
+      loadClients(pharmacieId);
+    }
+  }, [accessToken, pharmacieId]);
+
+  const addLigne = () =>
+    setLignes([...lignes, { produit: null, quantite: 1, prix_unitaire: 0, total: 0 }]);
+
+  const removeLigne = (index: number) => {
+    if (lignes.length > 1) {
+      const copy = [...lignes];
+      copy.splice(index, 1);
+      setLignes(copy);
+    }
+  };
+
+  const updateLigneProduit = (index: number, produitId: number) => {
+    const produit = produits.find((p) => p.id === produitId);
+    if (!produit) return;
+    const copy = [...lignes];
+    copy[index] = {
+      produit,
+      quantite: 1,
+      prix_unitaire: produit.prix_vente,
+      total: produit.prix_vente * 1,
+    };
+    setLignes(copy);
+  };
+
+  const updateLigneQuantite = (index: number, quantite: number) => {
+    const ligne = lignes[index];
+    if (ligne.produit) {
+      const copy = [...lignes];
+      copy[index].quantite = quantite;
+      copy[index].total = quantite * ligne.prix_unitaire;
+      setLignes(copy);
+    }
+  };
+
+  const totalVente = lignes.reduce((s, l) => s + l.total, 0);
+
+  const handleProformat = () => {
+    if (!selectedClient) {
+      alert("Veuillez sélectionner un client pour générer le proformat.");
+      return;
+    }
+
+    const lignesValides = lignes.filter(
+      (l) => l.produit !== null && l.quantite > 0 && l.prix_unitaire > 0
+    );
+
+    if (lignesValides.length === 0) {
+      alert("Aucun médicament valide sélectionné.");
+      return;
+    }
+
+    generateAndDownloadPDF({
+      lignes: lignesValides,
+      selectedClient,
+      totalVente: lignesValides.reduce((s, l) => s + l.total, 0),
+      pharmacie: pharmacieData || {
+        nom_pharm: 'Nom inconnu',
+        ville_pharm: '',
+        commune_pharm: '',
+        adresse_pharm: '',
+        rccm: '',
+        idnat: '',
+        ni: '',
+        telephone: '',
+        logo_pharm: null,
+      },
+      type: 'proformat',
+    });
+  };
+
+  const handleSubmit = async () => {
+    if (!accessToken || !pharmacieId) return;
+
+    for (const ligne of lignes) {
+      if (!ligne.produit) continue;
+      if (!ligne.quantite || ligne.quantite <= 0 || ligne.prix_unitaire <= 0 || ligne.total <= 0) {
+        alert(`Veuillez saisir correctement la quantité et le prix du médicament '${ligne.produit.nom_medicament}'`);
+        return;
+      }
+    }
+
+    const payload = {
+      pharmacie: pharmacieId,
+      client: selectedClient?.id || null,
+      lignes: lignes
+        .filter((l) => l.produit !== null)
+        .map((l) => ({
+          produit: l.produit!.id,
+          quantite: l.quantite,
+        })),
+    };
+
+    try {
+      await axios.post(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/ventes/`, payload, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+
+      alert('Vente enregistrée avec succès !');
+
+      generateAndDownloadPDF({
+        lignes,
+        selectedClient,
+        totalVente,
+        pharmacie: pharmacieData || {
+          nom_pharm: 'Nom inconnu',
+          ville_pharm: '',
+          commune_pharm: '',
+          adresse_pharm: '',
+          rccm: '',
+          idnat: '',
+          ni: '',
+          telephone: '',
+          logo_pharm: null,
+        }
+      });
+
+      loadProduits(pharmacieId);
+      setLignes([{ produit: null, quantite: 1, prix_unitaire: 0, total: 0 }]);
+      setSelectedClient(null);
+      setClientSearchTerm('');
+
+    } catch (err: any) {
+      alert("Erreur : " + JSON.stringify(err.response?.data || err.message));
+    }
+  };
+
+  if (loading)
+    return <div className="p-6 text-center">Chargement...</div>;
+
+  if (error)
+    return <div className="p-6 text-red-500 text-center">{error}</div>;
+
+  const filteredProduits = produits.filter((p) =>
+    p.nom_medicament.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const filteredClients = clients.filter((c) =>
+    c.nom_complet.toLowerCase().includes(clientSearchTerm.toLowerCase()) ||
+    c.telephone.includes(clientSearchTerm)
+  );
+
+  return (
+     <div className="flex min-h-screen">
+    <SidebarDirecteur />
+
+    <div className="flex-1 flex flex-col">
+      {user && pharmacie && <HeaderDirecteur user={user} pharmacie={pharmacie} />}
+
+        {/* Grille principale */}
+        <div className="grid md:grid-cols-2 gap-6">
+          {/* COLONNE GAUCHE - Produits */}
+          <div className="space-y-4">
+            <h2 className="text-lg font-semibold">Produits</h2>
+
+            <input
+              type="text"
+              placeholder="Rechercher un médicament..."
+              className="w-full p-3 border rounded-lg"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+
+            {searchTerm && (
+              <div className="grid md:grid-cols-1 gap-3 max-h-80 overflow-y-auto border rounded p-3 bg-gray-50">
+                {filteredProduits.map((produit) => (
+                  <div
+                    key={produit.id}
+                    className="border p-3 rounded-lg hover:bg-gray-50 cursor-pointer transition"
+                    onClick={() => {
+                      const dejaPris = lignes.some((l) => l.produit?.id === produit.id);
+                      if (dejaPris) {
+                        alert('Ce produit a déjà été sélectionné dans la commande.');
+                        return;
+                      }
+                      const emptyIndex = lignes.findIndex((l) => l.produit === null);
+                      if (emptyIndex >= 0) {
+                        updateLigneProduit(emptyIndex, produit.id);
+                      } else {
+                        setLignes([
+                          ...lignes,
+                          {
+                            produit,
+                            quantite: 1,
+                            prix_unitaire: produit.prix_vente,
+                            total: produit.prix_vente * 1,
+                          },
+                        ]);
+                      }
+                    }}
+                  >
+                    <div className="font-semibold">{produit.nom_medicament}</div>
+                    <div className="text-sm text-gray-600">Stock : {produit.quantite}</div>
+                    <div className="text-sm text-green-600 font-bold">{produit.prix_vente} Fc</div>
+                    <div className="text-sm text-gray-500 italic">Etagère N° : {produit.localisation}</div>
+                  </div>
+                ))}
+                {filteredProduits.length === 0 && (
+                  <div className="text-center text-gray-500">Aucun produit trouvé</div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* COLONNE DROITE - Panier */}
+          <div className="space-y-4">
+            <h2 className="text-lg font-semibold">Panier</h2>
+
+            {/* Sélection du client */}
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <h3 className="text-md font-semibold mb-2">Client</h3>
+              <input
+                type="text"
+                placeholder="Rechercher un client..."
+                className="w-full p-3 border rounded-lg"
+                value={clientSearchTerm}
+                onChange={(e) => setClientSearchTerm(e.target.value)}
+              />
+              {selectedClient && (
+                <div className="mt-2 p-3 bg-blue-50 rounded flex justify-between items-center">
+                  <div>
+                    <strong>{selectedClient.nom_complet}</strong>{' '}
+                    <span className="text-gray-600 ml-3">{selectedClient.telephone}</span>
+                  </div>
+                  <button
+                    className="text-red-500 hover:underline"
+                    onClick={() => {
+                      setSelectedClient(null);
+                      setClientSearchTerm('');
+                    }}
+                  >
+                    Changer
+                  </button>
+                </div>
+              )}
+              {!selectedClient && clientSearchTerm && (
+                <div className="bg-white border rounded shadow mt-1 max-h-40 overflow-y-auto">
+                  {filteredClients.map((client) => (
+                    <div
+                      key={client.id}
+                      className="p-2 hover:bg-gray-100 cursor-pointer"
+                      onClick={() => {
+                        setSelectedClient(client);
+                        setClientSearchTerm('');
+                      }}
+                    >
+                      <div className="font-semibold">{client.nom_complet}</div>
+                      <div className="text-sm text-gray-500">{client.telephone}</div>
+                    </div>
+                  ))}
+                  {filteredClients.length === 0 && (
+                    <div className="p-2 text-gray-500">Aucun client trouvé</div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Lignes de vente */}
+            <div className="space-y-3">
+              {lignes.map((ligne, index) => (
+                <div key={index} className="grid grid-cols-1 gap-3 border p-3 rounded-lg bg-white shadow-sm">
+                  <select
+                    className="p-2 border rounded"
+                    value={ligne.produit?.id || ''}
+                    onChange={(e) => updateLigneProduit(index, parseInt(e.target.value))}
+                  >
+                    <option value="">Choisir un produit</option>
+                    {produits.map((p) => (
+                      <option key={p.id} value={p.id}>{p.nom_medicament}</option>
+                    ))}
+                  </select>
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="number"
+                      min="1"
+                      className="p-2 border rounded w-20"
+                      value={ligne.quantite}
+                      onChange={(e) => updateLigneQuantite(index, parseInt(e.target.value))}
+                    />
+                    <div>P.U : {Number(ligne.prix_unitaire || 0).toFixed(2)} Fc</div>
+                    <div>Total : {Number(ligne.total || 0).toFixed(2)} Fc</div>
+                    <button
+                      className="ml-auto text-red-500 hover:underline"
+                      onClick={() => removeLigne(index)}
+                    >
+                      Supprimer
+                    </button>
+                  </div>
+                </div>
+              ))}
+              <button
+                className="text-blue-500 hover:underline"
+                onClick={addLigne}
+              >
+                + Ajouter une ligne
+              </button>
+            </div>
+
+            {/* Total & Boutons */}
+            <div className="bg-emerald-50 border-t pt-4 p-4 rounded-lg">
+              <div className="flex justify-between items-center mb-4">
+                <div className="text-lg font-bold">
+                  Total: {Number(totalVente).toFixed(2)} Fc
+                </div>
+              </div>
+              <div className="flex justify-end gap-4">
+                <button
+                  className="bg-yellow-500 hover:bg-yellow-600 text-white font-semibold py-2 px-4 rounded"
+                  onClick={handleProformat}
+                >
+                  Proformat
+                </button>
+                <button
+                  className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700"
+                  onClick={handleSubmit}
+                >
+                  Enregistrer Vente
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+       </div>
+   
+  );
+}

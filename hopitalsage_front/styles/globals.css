@@ -1,0 +1,88 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+
+/* --- VARIABLES PERSONNALISÉES --- */
+@layer base {
+  :root {
+    --primary: 210 100% 56%;
+    --primary-foreground: 0 0% 100%;
+
+    --background: 210 60% 98%;
+    --foreground: 222 47% 11%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+
+    --muted: 210 40% 96%;
+    --muted-foreground: 215 16% 47%;
+
+    --accent: 42 100% 85%;
+    --accent-foreground: 30 100% 30%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 210 20% 90%;
+    --input: 210 20% 95%;
+    --ring: 210 100% 56%;
+
+    --radius: 0.75rem;
+
+    --chart-1: 210 100% 56%;
+    --chart-2: 39 100% 60%;
+    --chart-3: 120 60% 50%;
+    --chart-4: 280 80% 65%;
+    --chart-5: 0 84% 60%;
+  }
+
+  /* Mode sombre automatique selon les préférences de l'utilisateur */
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --background: 222 47% 11%;
+      --foreground: 210 40% 98%;
+      --card: 222 47% 16%;
+      --card-foreground: 210 40% 98%;
+      --muted: 222 47% 20%;
+      --muted-foreground: 210 30% 70%;
+      --border: 222 47% 20%;
+      --input: 222 47% 24%;
+    }
+  }
+
+  body {
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+    font-family: 'Poppins', sans-serif;
+    @apply transition-colors duration-500 ease-in-out;
+  }
+}
+
+/* --- COMPOSANTS ET UTILITAIRES --- */
+@layer components {
+  .card {
+    @apply bg-[hsl(var(--card))] text-[hsl(var(--card-foreground))] shadow-lg rounded-2xl p-6 transition-transform hover:scale-105 hover:shadow-2xl duration-300 ease-in-out;
+  }
+
+  .btn-primary {
+    @apply relative overflow-hidden bg-[hsl(var(--primary))] text-white font-semibold px-6 py-3 rounded-xl transition-all duration-300 ease-in-out shadow-md;
+  }
+  
+  .btn-primary::after {
+    content: "";
+    @apply absolute top-0 left-0 w-0 h-full bg-white opacity-10 transition-all duration-500 ease-out;
+  }
+  
+  .btn-primary:hover::after {
+    @apply w-full;
+  }
+
+  .btn-primary:hover {
+    @apply brightness-110 scale-105;
+  }
+
+  .input {
+    @apply bg-[hsl(var(--input))] border border-[hsl(var(--border))] rounded-lg px-4 py-3 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[hsl(var(--ring))] focus:border-[hsl(var(--ring))] transition duration-300;
+  }
+}

@@ -1,0 +1,10 @@
+/* styles/variables.css */
+:root {
+    --primary-50: #e0f2fe;
+    --primary-600: #2563eb;
+    --primary-700: #1d4ed8;
+    --gray-50: #f9fafb;
+    --gray-200: #e5e7eb;
+    --gray-500: #6b7280;
+    --gray-800: #1f2937;
+  }
