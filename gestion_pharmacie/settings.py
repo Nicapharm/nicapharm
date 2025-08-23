@@ -51,7 +51,7 @@ MIDDLEWARE = [
     'whitenoise.middleware.WhiteNoiseMiddleware',
 ]
 CORS_ALLOWED_ORIGINS = [
-    "https://nicapharmtechnologie.onrender.com",
+    "https://nicapharmtech.onrender.com",
     "http://localhost:3000",
     "http://127.0.0.1:3000",        # ← parfois nécessaire aussi
     "http://localhost:5000",        # ← si tu utilises Electron
