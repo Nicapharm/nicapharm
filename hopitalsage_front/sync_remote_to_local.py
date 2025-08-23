@@ -8,7 +8,7 @@ from django.core.exceptions import FieldDoesNotExist
 from django.utils.timezone import now
 
 # ============================
-# CONFIGURATION DJANGO
+# CONFIGURATION DJANGO Mais pourquoi ce ci difficile 
 # ============================
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 DJANGO_BASE_DIR = os.path.abspath(os.path.join(CURRENT_DIR, '..'))
