@@ -381,7 +381,7 @@ class ReceptionProduitSerializer(serializers.ModelSerializer):
                         'categorie': 'True',
                         'alerte_quantite': 8,
                         'prix_achat': commande_ligne.prix_achat,
-                        'marge_beneficiaire': Decimal('35.00'),
+                        'marge_beneficiaire': Decimal('12.00'),
                     }
                 )
 
@@ -492,11 +492,9 @@ class HistoriqueDepenseSerializer(serializers.ModelSerializer):
 from rest_framework import serializers
 from django.db import transaction
 from .models import VenteProduit, VenteLigne, Client, ProduitPharmacie
-
 from rest_framework import serializers
 from .models import VenteProduit, ProduitPharmacie, Client
 from .serializers import VenteLigneSerializer, PharmacieSerializer
-
 from rest_framework.fields import CurrentUserDefault
 
 class CurrentPharmacieDefault:
@@ -822,11 +820,17 @@ class RequisitionSerializer(serializers.ModelSerializer):
             return str(obj.produit_fabricant.id)
         return None
 
-# serializers.py
 class RendezVousSerializer(serializers.ModelSerializer):
     class Meta:
         model = RendezVous
         fields = '__all__'
+        read_only_fields = ['pharmacie']  # la pharmacie sera mise automatiquement
+
+    def create(self, validated_data):
+        request = self.context.get('request')
+        if request and hasattr(request.user, 'pharmacie'):
+            validated_data['pharmacie'] = request.user.pharmacie
+        return super().create(validated_data)
 
 #######PUBLICITE #############
 # serializers.py

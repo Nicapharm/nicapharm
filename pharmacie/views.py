@@ -3,8 +3,6 @@ from .models import Fabricant, ProduitFabricant,TauxChange
 from .serializers import FabricantSerializer,ProduitFabricant, FabricantDetailSerializer,FabricantDashboardSerializer,ProduitFabricantSerializer, TauxChangeSerializer
 from rest_framework.permissions import IsAuthenticated
 from django.shortcuts import get_object_or_404
-
-
 from django.db.models import Count
 from rest_framework import viewsets, filters
 from django.db.models import Count
@@ -27,7 +25,6 @@ class FabricantViewSet(viewsets.ModelViewSet):
         if self.action == 'list':
             return FabricantDashboardSerializer
         return FabricantDetailSerializer
-
 
 from rest_framework import viewsets, filters
 from rest_framework.permissions import IsAuthenticated
@@ -57,7 +54,6 @@ class ProduitFabricantViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save()
-
 
 class TauxChangeViewSet(viewsets.ModelViewSet):
     queryset = TauxChange.objects.all().order_by('-date')  # Le plus récent en haut
@@ -260,7 +256,6 @@ from rest_framework.response import Response
 from django.utils.dateparse import parse_date
 from .models import VenteProduit
 from .serializers import HistoriqueVenteSerializer
-
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -787,7 +782,6 @@ def delete_all_requisitions(request):
     requisitions.delete()
     return Response({"detail": f"{count} réquisition(s) supprimée(s)."}, status=status.HTTP_200_OK)
 
-
 # views.py
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
@@ -841,8 +835,6 @@ def historique_ventes(request):
         "par_mois": list(par_mois),
         "details": details
     })
-
-
 
 ##################### Exporter les données Via une clef usb##########################
 import json
@@ -901,7 +893,6 @@ def sauvegarde_sql(request):
 
     except Exception as e:
         return JsonResponse({'erreur': str(e)}, status=500)
-
 
 import os
 import shutil
@@ -1054,17 +1045,16 @@ class RendezVousViewSet(viewsets.ModelViewSet):
     serializer_class = RendezVousSerializer
     permission_classes = [IsAuthenticated]
 
-# views.py
 class RendezVousListCreateView(generics.ListCreateAPIView):
     queryset = RendezVous.objects.all()
     serializer_class = RendezVousSerializer
 
 class RendezVousByClientView(generics.ListAPIView):
     serializer_class = RendezVousSerializer
-
     def get_queryset(self):
         client_id = self.kwargs['client_id']
         return RendezVous.objects.filter(client__id=client_id)
+    
 ###############################
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response

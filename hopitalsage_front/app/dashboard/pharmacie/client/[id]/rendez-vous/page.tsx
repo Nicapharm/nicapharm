@@ -5,7 +5,7 @@ import axios from 'axios';
 import { useParams } from 'next/navigation';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
-import PharmacieLayout from '@/app/dashboard/directeur/layout'; // ✅ Import du layout global
+import PharmacieLayout from '@/app/dashboard/directeur/layout';
 
 interface RendezVous {
   id: number;
@@ -16,13 +16,14 @@ interface RendezVous {
 }
 
 export default function RendezVousPage() {
-  const { id } = useParams(); // ✅ Récupère le paramètre [id] via useParams()
-  const clientId = id as string; // ✅ Cast vers string si nécessaire
+  const params = useParams();
+  const clientId = params?.id as string;
 
   const [date, setDate] = useState<Date | null>(null);
   const [rendezVous, setRendezVous] = useState<RendezVous[]>([]);
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [heure, setHeure] = useState<string>('');
+  const [loading, setLoading] = useState<boolean>(false);
 
   useEffect(() => {
     const token = localStorage.getItem('accessToken');
@@ -36,23 +37,24 @@ export default function RendezVousPage() {
   const fetchRendezVous = async () => {
     try {
       const res = await axios.get(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/rendez-vous/client/${clientId}/`, // ✅ URL remplacée
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/rendez-vous/client/${clientId}/`,
         {
           headers: { Authorization: `Bearer ${accessToken}` },
         }
       );
       setRendezVous(res.data);
     } catch (error) {
-      console.error('Erreur de chargement des rendez-vous', error);
+      console.error('❌ Erreur de chargement des rendez-vous', error);
     }
   };
 
   const enregistrerRendezVous = async () => {
     if (!date || !heure) return;
 
+    setLoading(true);
     try {
-      const res = await axios.post(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/rendez-vous/`, // ✅ URL remplacée
+      await axios.post(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/rendez-vous/`,
         {
           client: clientId,
           date: date.toISOString().split('T')[0],
@@ -63,11 +65,13 @@ export default function RendezVousPage() {
         }
       );
 
-      setRendezVous((prev) => [...prev, res.data]);
+      await fetchRendezVous(); // ✅ Refetch pour cohérence
       setDate(null);
       setHeure('');
     } catch (error) {
-      console.error("Erreur d'enregistrement du rendez-vous", error);
+      console.error("❌ Erreur d'enregistrement du rendez-vous", error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -78,9 +82,10 @@ export default function RendezVousPage() {
           Gérer les Rendez-vous du Client #{clientId}
         </h1>
 
+        {/* Formulaire */}
         <div className="mb-6">
           <label className="block text-gray-600 font-medium mb-2">
-            Choisir une date de rendez-vous :
+            Nouveau rendez-vous :
           </label>
           <div className="flex gap-2 items-center flex-wrap">
             <DatePicker
@@ -100,28 +105,39 @@ export default function RendezVousPage() {
             />
             <button
               onClick={enregistrerRendezVous}
-              className="bg-emerald-600 text-white px-4 py-2 rounded hover:bg-emerald-700 transition w-full sm:w-auto"
+              disabled={loading}
+              className="bg-emerald-600 text-white px-4 py-2 rounded hover:bg-emerald-700 transition w-full sm:w-auto disabled:opacity-50"
             >
-              Enregistrer
+              {loading ? 'Enregistrement...' : 'Enregistrer'}
             </button>
           </div>
         </div>
 
-        <h2 className="text-lg font-semibold text-gray-700 mb-2">Historique des rendez-vous</h2>
-        <ul className="space-y-2">
+        {/* Historique */}
+        <h2 className="text-lg font-semibold text-gray-700 mb-2">
+          Historique des rendez-vous
+        </h2>
+        <ul className="divide-y border rounded">
           {rendezVous.length === 0 && (
-            <li className="text-gray-500">Aucun rendez-vous enregistré.</li>
+            <li className="p-3 text-gray-500 text-center">
+              Aucun rendez-vous enregistré.
+            </li>
           )}
           {rendezVous.map((rdv) => (
             <li
               key={rdv.id}
-              className={`p-3 rounded border ${
-                rdv.statut === 'passé'
-                  ? 'bg-gray-100 text-gray-500'
-                  : 'bg-emerald-50 text-emerald-800'
-              }`}
+              className="p-3 flex justify-between items-center"
             >
-              {rdv.date} à {rdv.heure} ({rdv.statut})
+              <span>{rdv.date} à {rdv.heure}</span>
+              <span
+                className={`px-2 py-1 rounded text-xs font-medium ${
+                  rdv.statut === 'passé'
+                    ? 'bg-gray-200 text-gray-600'
+                    : 'bg-emerald-100 text-emerald-800'
+                }`}
+              >
+                {rdv.statut}
+              </span>
             </li>
           ))}
         </ul>

@@ -142,7 +142,7 @@ export default function DashboardPharmacie() {
       <div className="space-y-2">
         {afficherAlerte && (
           <h2 className="text-sm text-gray-600 italic text-right mb-4">
-            🔔 Pensez à sauvegarder vos données chaque soir avant de fermer la pharmacie pour sécuriser vos ventes et recevoir les mises à jour. ⏳ Cette opération peut prendre entre 20 à 40 minutes, merci de patienter jusqu’à la fin.
+            🔔 N’oubliez pas : connectez-vous à l'internet et sauvegardez vos données chaque soir pour sécuriser vos ventes. ⏳ Durée : 20–40 min.
           </h2>
         )}
         <div className="flex gap-4">
@@ -151,15 +151,9 @@ export default function DashboardPharmacie() {
             onClick={() => sync('remote_to_local')}
             disabled={syncLoading}
           >
-            🔄 Enregistrer donnée Cloud vers ➝ Ton Ordinateur
+            🔄 Sauvegarde les donnée ➝ Ton Ordinateur
           </button>
-          <button
-            className="bg-green-600 text-white px-4 py-2 rounded disabled:opacity-50"
-            onClick={() => sync('local_to_remote')}
-            disabled={syncLoading}
-          >
-            🔼 Enregistrer donnée Ordinateur vers ➝ Cloud
-          </button>
+          
         </div>
 
         {(syncLoading || syncLog) && (

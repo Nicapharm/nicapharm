@@ -1,10 +1,11 @@
 import os
 import sys
+import json
+from uuid import UUID
+from datetime import datetime
 from django.db import models
 from django.core.exceptions import FieldDoesNotExist
 from django.utils.timezone import now
-from datetime import datetime
-import json
 
 # ============================
 # CONFIGURATION DJANGO
@@ -43,7 +44,6 @@ from pharmacie.models import (
 # ============================
 # CONFIGURATION SYNCHRO
 # ============================
-
 MODELS_GLOBAL = [
     TauxChange,
     Fabricant,
@@ -90,11 +90,11 @@ PHARMACIE_LOOKUP_BY_MODEL = {
 }
 
 SYNC_TRACK_FILE = os.path.join(CURRENT_DIR, "last_sync.json")
+CONFIG_FILE = os.path.join(CURRENT_DIR, "pharmacie_config.json")
 
 # ============================
 # UTILITAIRES
 # ============================
-
 def load_sync_times():
     if os.path.exists(SYNC_TRACK_FILE):
         with open(SYNC_TRACK_FILE, "r") as f:
@@ -114,15 +114,55 @@ def update_last_sync_time(model):
     SYNC_TIMES[model.__name__] = now().isoformat()
 
 def get_current_pharmacie():
-    return Pharmacie.objects.using('default').first()
+    if not os.path.exists(CONFIG_FILE):
+        raise Exception(f"❌ {CONFIG_FILE} introuvable. Crée pharmacie_config.json avec l'ID.")
+
+    with open(CONFIG_FILE, "r") as f:
+        cfg = json.load(f)
+
+    raw_id = cfg.get("pharmacie_id")
+    if not raw_id:
+        raise Exception("❌ pharmacie_id manquant dans pharmacie_config.json")
+
+    pk_name = Pharmacie._meta.pk.name
+
+    try:
+        value = UUID(raw_id) if isinstance(raw_id, str) and "-" in raw_id else raw_id
+        return Pharmacie.objects.using('default').get(**{pk_name: value})
+    except Pharmacie.DoesNotExist:
+        raise Exception(f"❌ Aucune pharmacie trouvée avec {pk_name}={raw_id} dans la base locale.")
 
 def get_pharmacie_lookup(model):
     return PHARMACIE_LOOKUP_BY_MODEL.get(model.__name__)
 
 # ============================
+# GESTION DES FK
+# ============================
+def ensure_pharmacie_exists_remote(pharmacie, target_db):
+    pk_name = Pharmacie._meta.pk.name
+    defaults = {f.name: getattr(pharmacie, f.name) for f in Pharmacie._meta.fields if f.name != pk_name}
+    obj, created = Pharmacie.objects.using(target_db).get_or_create(
+        **{pk_name: getattr(pharmacie, pk_name)},
+        defaults=defaults
+    )
+    if created:
+        print(f"   ➕ Pharmacie créée sur {target_db}: {pharmacie.nom_pharm}")
+    return obj
+
+def ensure_user_exists_remote(user_id, target_db):
+    try:
+        user = User.objects.using(target_db).get(id=user_id)
+        return user
+    except User.DoesNotExist:
+        user_source = User.objects.using('default').get(id=user_id)
+        defaults = {f.name: getattr(user_source, f.name) for f in User._meta.fields if f.name != 'id'}
+        user_remote = User.objects.using(target_db).create(id=user_id, **defaults)
+        print(f"   ➕ Utilisateur créé sur {target_db}: {user_remote.username}")
+        return user_remote
+
+# ============================
 # SYNCHRO
 # ============================
-
 def sync_data(source_db, target_db, model, pharmacie=None, verbose=False):
     print(f"🔄 Sync: {model.__name__} [{source_db} → {target_db}]")
 
@@ -137,7 +177,6 @@ def sync_data(source_db, target_db, model, pharmacie=None, verbose=False):
             except FieldDoesNotExist:
                 pass
 
-    # Filtrage par date de dernière synchro
     last_sync = get_last_sync_time(model)
     if hasattr(model, 'updated_at'):
         qs = qs.filter(updated_at__gt=last_sync)
@@ -147,10 +186,8 @@ def sync_data(source_db, target_db, model, pharmacie=None, verbose=False):
         print("   🟡 Rien à synchroniser")
         return
 
-    # Objets existants par PK
     existing_ids = set(model.objects.using(target_db).filter(pk__in=source_ids).values_list('pk', flat=True))
 
-    # Vérifier aussi les champs uniques
     unique_fields = [f.name for f in model._meta.fields if f.unique and f.name != 'id']
     existing_uniques = set()
     if unique_fields:
@@ -163,13 +200,16 @@ def sync_data(source_db, target_db, model, pharmacie=None, verbose=False):
     to_update = []
 
     for obj in qs:
-        data = {}
-        for field in model._meta.fields:
-            if field.name == 'id':
-                continue
-            data[field.name] = getattr(obj, field.name)
-
+        data = {f.name: getattr(obj, f.name) for f in model._meta.fields if f.name != 'id'}
         unique_key = tuple(data[f] for f in unique_fields) if unique_fields else None
+
+        # Assurer FK User
+        for f in fk_fields:
+            fk_field = obj._meta.get_field(f)
+            if fk_field.remote_field.model == User:
+                fk_user = getattr(obj, f)
+                if fk_user:
+                    ensure_user_exists_remote(fk_user.id, target_db)
 
         if obj.pk not in existing_ids and (not unique_key or unique_key not in existing_uniques):
             to_create.append(model(id=obj.pk, **data))
@@ -194,16 +234,21 @@ def sync_data(source_db, target_db, model, pharmacie=None, verbose=False):
 # ============================
 # EXECUTION
 # ============================
-
 def run(verbose=False):
     pharmacie = get_current_pharmacie()
+    print(f"✅ Pharmacie locale : {pharmacie.nom_pharm} (ID: {pharmacie.id})")
 
-    if not pharmacie:
-        print("❌ Aucune pharmacie locale trouvée.")
-        return
+    # Étape 1 : envoyer les données locales vers le serveur
+    print("\n=== 🔼 LOCAL → REMOTE ===")
+    for model in MODELS_GLOBAL:
+        sync_data("default", "remote", model, verbose=verbose)
 
-    print(f"✅ Pharmacie : {pharmacie.nom_pharm} (ID: {pharmacie.id})")
+    ensure_pharmacie_exists_remote(pharmacie, "remote")
 
+    for model in MODELS_PAR_PHARMACIE:
+        sync_data("default", "remote", model, pharmacie=pharmacie, verbose=verbose)
+
+    # Étape 2 : récupérer les données distantes vers le local
     print("\n=== 🔽 REMOTE → LOCAL ===")
     for model in MODELS_GLOBAL:
         sync_data("remote", "default", model, verbose=verbose)
@@ -211,15 +256,8 @@ def run(verbose=False):
     for model in MODELS_PAR_PHARMACIE:
         sync_data("remote", "default", model, pharmacie=pharmacie, verbose=verbose)
 
-    print("\n=== 🔼 LOCAL → REMOTE ===")
-    for model in MODELS_GLOBAL:
-        sync_data("default", "remote", model, verbose=verbose)
-
-    for model in MODELS_PAR_PHARMACIE:
-        sync_data("default", "remote", model, pharmacie=pharmacie, verbose=verbose)
-
     save_sync_times(SYNC_TIMES)
     print("\n✅ Synchro terminée.")
 
 if __name__ == "__main__":
-    run(verbose=False)
+    run(verbose=True)

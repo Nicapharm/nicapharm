@@ -16,7 +16,7 @@ interface ProduitPharmacie {
   prix_vente: number;
   quantite: number;
   code_barre: string;
-  localisation:string;
+  localisation: string;
 }
 
 interface LigneVente {
@@ -43,7 +43,9 @@ export default function VentePage() {
   const [produits, setProduits] = useState<ProduitPharmacie[]>([]);
   const [pharmacieNom, setPharmacieNom] = useState<string | null>(null);
   const [clients, setClients] = useState<Client[]>([]);
-  const [lignes, setLignes] = useState<LigneVente[]>([{ produit: null, quantite: 1, prix_unitaire: 0, total: 0 }]);
+  const [lignes, setLignes] = useState<LigneVente[]>([
+    { produit: null, quantite: 1, prix_unitaire: 0, total: 0 },
+  ]);
   const [searchTerm, setSearchTerm] = useState('');
   const [clientSearchTerm, setClientSearchTerm] = useState('');
   const [accessToken, setAccessToken] = useState<string | null>(null);
@@ -71,28 +73,34 @@ export default function VentePage() {
             setPharmacieId(pharmacie.id);
             setPharmacieNom(pharmacie.nom_pharm);
           } else {
-            setError("Aucune pharmacie trouvée pour cet utilisateur");
+            setError('Aucune pharmacie trouvée pour cet utilisateur');
           }
         })
-        .catch(() => setError("Erreur lors du chargement des données de la pharmacie"))
+        .catch(() => setError('Erreur lors du chargement des données de la pharmacie'))
         .finally(() => setLoading(false));
     }
   }, [accessToken]);
 
   const loadProduits = (pharmacieId: number) => {
     axios
-      .get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/produits-pharmacie/?pharmacie=${pharmacieId}`, {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      })
+      .get(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/produits-pharmacie/?pharmacie=${pharmacieId}`,
+        {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        }
+      )
       .then((res) => setProduits(res.data))
-      .catch(() => setError("Erreur lors du chargement des produits"));
+      .catch(() => setError('Erreur lors du chargement des produits'));
   };
 
   const loadClients = (pharmacieId: number) => {
     axios
-      .get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/clients/?pharmacie=${pharmacieId}`, {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      })
+      .get(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/clients/?pharmacie=${pharmacieId}`,
+        {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        }
+      )
       .then((res) => setClients(res.data))
       .catch(console.error);
   };
@@ -142,7 +150,7 @@ export default function VentePage() {
 
   const handleProformat = () => {
     if (!selectedClient) {
-      alert("Veuillez sélectionner un client pour générer le proformat.");
+      alert('Veuillez sélectionner un client pour générer le proformat.');
       return;
     }
 
@@ -151,7 +159,7 @@ export default function VentePage() {
     );
 
     if (lignesValides.length === 0) {
-      alert("Aucun médicament valide sélectionné.");
+      alert('Aucun médicament valide sélectionné.');
       return;
     }
 
@@ -180,7 +188,9 @@ export default function VentePage() {
     for (const ligne of lignes) {
       if (!ligne.produit) continue;
       if (!ligne.quantite || ligne.quantite <= 0 || ligne.prix_unitaire <= 0 || ligne.total <= 0) {
-        alert(`Veuillez saisir correctement la quantité et le prix du médicament '${ligne.produit.nom_medicament}'`);
+        alert(
+          `Veuillez saisir correctement la quantité et le prix du médicament '${ligne.produit.nom_medicament}'`
+        );
         return;
       }
     }
@@ -217,32 +227,30 @@ export default function VentePage() {
           ni: '',
           telephone: '',
           logo_pharm: null,
-        }
+        },
       });
 
       loadProduits(pharmacieId);
       setLignes([{ produit: null, quantite: 1, prix_unitaire: 0, total: 0 }]);
       setSelectedClient(null);
       setClientSearchTerm('');
-
     } catch (err: any) {
-      alert("Erreur : " + JSON.stringify(err.response?.data || err.message));
+      alert('Erreur : ' + JSON.stringify(err.response?.data || err.message));
     }
   };
 
-  if (loading)
-    return <div className="p-6 text-center">Chargement...</div>;
+  if (loading) return <div className="p-6 text-center">Chargement...</div>;
 
-  if (error)
-    return <div className="p-6 text-red-500 text-center">{error}</div>;
+  if (error) return <div className="p-6 text-red-500 text-center">{error}</div>;
 
   const filteredProduits = produits.filter((p) =>
     p.nom_medicament.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const filteredClients = clients.filter((c) =>
-    c.nom_complet.toLowerCase().includes(clientSearchTerm.toLowerCase()) ||
-    c.telephone.includes(clientSearchTerm)
+  const filteredClients = clients.filter(
+    (c) =>
+      c.nom_complet.toLowerCase().includes(clientSearchTerm.toLowerCase()) ||
+      c.telephone.includes(clientSearchTerm)
   );
 
   return (
@@ -250,12 +258,10 @@ export default function VentePage() {
       <div className="p-6 bg-white rounded-xl shadow-md space-y-6">
         <h1 className="text-2xl font-bold">Nouvelle Vente</h1>
 
-        {/* Grille principale */}
         <div className="grid md:grid-cols-2 gap-6">
-          {/* COLONNE GAUCHE - Produits */}
+          {/* COLONNE GAUCHE */}
           <div className="space-y-4">
             <h2 className="text-lg font-semibold">Produits</h2>
-
             <input
               type="text"
               placeholder="Rechercher un médicament..."
@@ -263,7 +269,6 @@ export default function VentePage() {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
-
             {searchTerm && (
               <div className="grid md:grid-cols-1 gap-3 max-h-80 overflow-y-auto border rounded p-3 bg-gray-50">
                 {filteredProduits.map((produit) => (
@@ -273,7 +278,7 @@ export default function VentePage() {
                     onClick={() => {
                       const dejaPris = lignes.some((l) => l.produit?.id === produit.id);
                       if (dejaPris) {
-                        alert('Ce produit a déjà été sélectionné dans la commande.');
+                        alert('Ce produit a déjà été sélectionné.');
                         return;
                       }
                       const emptyIndex = lignes.findIndex((l) => l.produit === null);
@@ -305,11 +310,10 @@ export default function VentePage() {
             )}
           </div>
 
-          {/* COLONNE DROITE - Panier */}
+          {/* COLONNE DROITE */}
           <div className="space-y-4">
             <h2 className="text-lg font-semibold">Panier</h2>
 
-            {/* Sélection du client */}
             <div className="bg-gray-50 p-4 rounded-lg">
               <h3 className="text-md font-semibold mb-2">Client</h3>
               <input
@@ -358,10 +362,12 @@ export default function VentePage() {
               )}
             </div>
 
-            {/* Lignes de vente */}
             <div className="space-y-3">
               {lignes.map((ligne, index) => (
-                <div key={index} className="grid grid-cols-1 gap-3 border p-3 rounded-lg bg-white shadow-sm">
+                <div
+                  key={index}
+                  className="grid grid-cols-1 gap-3 border p-3 rounded-lg bg-white shadow-sm"
+                >
                   <select
                     className="p-2 border rounded"
                     value={ligne.produit?.id || ''}
@@ -369,7 +375,9 @@ export default function VentePage() {
                   >
                     <option value="">Choisir un produit</option>
                     {produits.map((p) => (
-                      <option key={p.id} value={p.id}>{p.nom_medicament}</option>
+                      <option key={p.id} value={p.id}>
+                        {p.nom_medicament}
+                      </option>
                     ))}
                   </select>
                   <div className="flex items-center gap-3">
@@ -391,15 +399,11 @@ export default function VentePage() {
                   </div>
                 </div>
               ))}
-              <button
-                className="text-blue-500 hover:underline"
-                onClick={addLigne}
-              >
+              <button className="text-blue-500 hover:underline" onClick={addLigne}>
                 + Ajouter une ligne
               </button>
             </div>
 
-            {/* Total & Boutons */}
             <div className="bg-emerald-50 border-t pt-4 p-4 rounded-lg">
               <div className="flex justify-between items-center mb-4">
                 <div className="text-lg font-bold">

@@ -262,7 +262,7 @@ export default function RequisitionPage() {
 
           {afficherAlerte && (
             <h2 className="text-sm text-gray-600 italic text-right mb-4">
-              🔔 Pensez à sauvegarder vos données chaque soir avant de fermer la pharmacie pour sécuriser vos ventes et recevoir les mises à jour. ⏳ Cette opération peut prendre entre 20 à 40 minutes, merci de patienter jusqu’à la fin.
+              🔔 N’oubliez pas : connectez-vous à l'internet et sauvegardez vos données chaque soir pour sécuriser vos ventes. ⏳ Durée : 20–40 min.
             </h2>
           )}
 
@@ -274,15 +274,9 @@ export default function RequisitionPage() {
                 onClick={() => sync('remote_to_local')}
                 disabled={syncLoading}
               >
-                🔄 Enregistrer de Cloud vers Ordinateur Local
+                 🔄 Sauvegarde les donnée ➝ Ton Ordinateur
               </button>
-              <button
-                className="bg-green-600 text-white px-4 py-2 rounded disabled:opacity-50"
-                onClick={() => sync('local_to_remote')}
-                disabled={syncLoading}
-              >
-                🔼 Enregistrer de l'Ordinateur vers Cloud
-              </button>
+              
             </div>
 
             {(syncLoading || syncLog) && (

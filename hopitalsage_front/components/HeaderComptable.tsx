@@ -221,6 +221,7 @@ const HeaderPharmacie = ({ pharmacie, user }: HeaderPharmacieProps) => {
       submenu: [
         { href: '/dashboard/pharmacie/client/afficher-client', label: 'Liste des clients', icon: '📁' },
         { href: '/dashboard/pharmacie/client/ajouter-client', label: 'Ajouter un client', icon: '➕' },
+        { href: '/dashboard/directeur/taux-echange', label: 'Modifier Taux Echange', icon: '$' },
       ],
       isTitle: true,
     },

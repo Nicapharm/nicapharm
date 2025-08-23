@@ -51,7 +51,7 @@ MIDDLEWARE = [
     'whitenoise.middleware.WhiteNoiseMiddleware',
 ]
 CORS_ALLOWED_ORIGINS = [
-    "https://nicapharmtech.onrender.com",
+    "https://nicapharmtechnologie.onrender.com",
     "http://localhost:3000",
     "http://127.0.0.1:3000",        # ← parfois nécessaire aussi
     "http://localhost:5000",        # ← si tu utilises Electron
@@ -111,7 +111,7 @@ SIMPLE_JWT = {
 }
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 # Database
-# https://docs.djangoproject.com/en/5.2/ref/settings/#databasessssss
+# https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
 from decouple import config
 
@@ -124,7 +124,7 @@ DATABASES = {
         'HOST': 'dpg-d2fucl7diees73cs10bg-a',
         'PORT': '5432',
     },
-    'remote': 
+      'remote': 
     {
     'ENGINE': 'django.db.backends.postgresql',
     'NAME': 'nicapharm21',
